@@ -13,153 +13,148 @@ from sensor_msgs.msg import LaserScan
 
 class WallFollowing(object):    
 
-	scan = None
-	wallDistance = 0.0
-	maxSpeed = 0.0
-	direction = 0.0
-	kProp = 0.0
-	kInt = 0.0
-	kDiff = 0.0
-	angleCoef = 0.0
-	error = 0.0
-	errorSum = 0.0
-	errorDiff = 0.0
-	distMin = 0	#minimum distance masured by sensor
-	angleMin = 0   #angle, at which was measured the shortest distance
-	go = 1	#in case of obstacle, change to 0
+	_scan = None
+	_wall_distance = 0.0
+	_max_speed = 0.0
+	_direction = 0.0
+	_k_prop = 0.0
+	_k_int = 0.0
+	_k_diff = 0.0
+	_angle_coef = 0.0
 
-	def __init__(self, wallDistance, maxSpeed, direction, kProp, kInt, kDiff, angleCoef):
+
+	def __init__(self, wall_distance, max_speed, direction, k_prop, k_int, k_diff, angle_coef):
 		"""
 		Constructor
 		Ex. WallFollowing(0.2, 0.1, 1, 5, 0, 5, 1)
 		"""
-		self.wallDistance = wallDistance
-		self.maxSpeed = maxSpeed
-		self.direction = direction
-		self.kProp = kProp
-		self.kInt = kInt
-		self.kDiff = kDiff
-		self.angleCoef = angleCoef
-		self.error = 0.0
-		self.errorSum = 0.0
-		self.distMin = 0.0	#minimum distance measured by sensor
-		self.angleMin = 0.0   #angle, at which was measured the shortest distance
-		self.go = 1        #in case of obstacle, change to 0
+		self._wall_distance = wall_distance
+		self._max_speed = max_speed
+		self._direction = direction
+		self._k_prop = k_prop
+		self._k_int = k_int
+		self._k_diff = k_diff
+		self._angle_coef = angle_coef
+		self._error = 0.0
+		self._error_sum = 0.0
+		self._dist_min = 0.0	#minimum distance measured by sensor
+		self._angle_min = 0.0   #angle, at which was measured the shortest distance
+		self._go = 1        #in case of obstacle, change to 0
 
 	
-	def computeLaserScanData(self):	
+	def _compute_laser_scan_data(self):		
 		"""
 		Extract data from LaserScan
 		"""
 
-		#New model from right to left
-		ileftEnd = 450
-		icenter = 270
-		irightBeg = 90
+		# From right to left
+		i_left_end = 450
+		i_center = 270
+		i_right_beg = 90
 
-		size = len(self.scan.ranges)
+		size = len(self._scan.ranges)
 
-		if self.direction == 1:
-			#Left wall following
-			minIndex = icenter
-			maxIndex = ileftEnd
-			iMinException = 450
+		if self._direction == 1:
+			# Left wall following
+			min_index = i_center
+			max_index = i_left_end
+			i_min_exception = 450
 			
-		elif self.direction == -1:
-			#Right wall following	
-			minIndex = irightBeg
-			maxIndex = icenter
-			iMinException = 90
+		elif self._direction == -1:
+			# Right wall following	
+			min_index = i_right_beg
+			max_index = i_center
+			i_min_exception = 90
 
-		print("MinIndex {0}".format(minIndex))
-		print("MaxIndex {0}".format(maxIndex))
+		print("min_index {0}".format(min_index))
+		print("max_index {0}".format(max_index))
 		
-		self.distMin = min(self.scan.ranges[minIndex:maxIndex])
-		print("\nDistMIn {0}".format(self.distMin))
+		self._dist_min = min(self._scan.ranges[min_index:max_index])
+		print("\nDist MIn {0}".format(self._dist_min))
 
 		try:
-			iMin = self.scan.ranges.index(self.distMin)
+			i_min = self._scan.ranges.index(self._dist_min)
 		except:
-			iMin = iMinException
+			i_min = i_min_exception
 
-		print("iMin {0}".format(iMin))
+		print("i_min {0}".format(i_min))
 
-		self.angleMin = self.scan.angle_min + (self.scan.angle_increment * iMin)
+		self._angle_min = self._scan.angle_min + (self._scan.angle_increment * i_min)
 
-		self.distFront = self.getDistFront()
+		self._dist_front = self._get_dist_front()
 		
-		print("DistFront {0}".format(self.distFront))
+		print("_dist_front {0}".format(self._dist_front))
 
-		self.errorDiff = 2 * (self.distMin - self.wallDistance) - self.error
+		self._error_diff = 2*(self._dist_min - self._wall_distance) - self._error
 
-		self.error = self.distMin - self.wallDistance
-		print("Error {0}".format(self.error))
-		self.errorSum = self.errorSum + self.error
-		print("ErrorDiff {0}".format(self.errorDiff))
-		print("ErrorSum {0}".format(self.errorSum))
+		self._error = self._dist_min - self._wall_distance
+		print("_error {0}".format(self._error))
+		self._error_sum = self._error_sum + self._error
+		print("_error_diff {0}".format(self._error_diff))
+		print("_error_sum {0}".format(self._error_sum))
 
 
-	def getDistFront(self):
+	def _get_dist_front(self):
 		"""
 		Returns the min distance into the fron 30 degrees cone
 		"""
 
-		return min(self.scan.ranges[240:300])
+		return min(self._scan.ranges[240:300])
 
 
-	def computeVelocities(self):
+	def compute_velocities(self):
 		"""
 		Applies a PID controller and computes angular and linear velocities
 		"""
 
-		if self.scan == None or len(self.scan.ranges) == 0:
-			self.speedX = 0.0
-			self.turnZ = 0.0
+		if self._scan == None or len(self._scan.ranges) == 0:
+			self._speed_x = 0.0
+			self._turn_z = 0.0
 			return
 
-		self.computeLaserScanData()
+		self._compute_laser_scan_data()
 
-		#Speeds calculation
+		# Speeds calculation
 
-		#PID regulator		
-		self.turnZ = self.direction * (self.kProp * self.error + self.kInt * self.errorSum + self.kDiff * self.errorDiff) \
-			+ self.angleCoef * (self.angleMin - (numpy.pi * self.direction / 2));    
+		# PID regulator		
+		self._turn_z = self._direction*(self._k_prop*self._error + self._k_int*self._error_sum \
+			+ self._k_diff*self._error_diff) + self._angle_coef*(self._angle_min \
+			- (numpy.pi*self._direction / 2));    
 
-		if self.distFront < self.wallDistance:
-			print("self.distFront < self.wallDistance")
-			self.speedX = 0
+		if self._dist_front < self._wall_distance:
+			print("self._dist_front < self._wall_distance")
+			self._speed_x = 0
 
-		elif self.distFront < self.wallDistance * 2:
-			print("self.distFront < self.wallDistance * 2")
-			self.speedX = self.maxSpeed * 0.5
+		elif self._dist_front < self._wall_distance * 2:
+			print("self._dist_front < self._wall_distance * 2")
+			self._speed_x = self._max_speed*0.5
 
-		elif abs(self.angleMin) > 1.75:
-			print("abs(self.angleMin) > 1.75")
-			self.speedX = 0.4 * self.maxSpeed
+		elif abs(self._angle_min) > 1.75:
+			print("abs(self._angle_min) > 1.75")
+			self._speed_x = 0.4 * self._max_speed
 		else:
 			print("Else")
-			self.speedX = self.maxSpeed
+			self._speed_x = self._max_speed
 
 		#Upper bound for turn Z
-		if abs(self.turnZ) > 0.15:
-			self.turnZ = numpy.sign(self.turnZ) * 0.15
+		if abs(self._turn_z) > 0.15:
+			self._turn_z = numpy.sign(self._turn_z) * 0.15
 
-		print("speedX {0}".format(self.speedX))
-		print("turnZ {0}".format(self.turnZ))
-
-
-	def getLinearVelocity(self):
-
-		return self.speedX
+		print("_speed_x {0}".format(self._speed_x))
+		print("_turn_z {0}".format(self._turn_z))
 
 
-	def getAngularVelocity(self):
+	def get_linear_velocity(self):
 
-		return self.turnZ
+		return self._speed_x
 
 
-	def updateScanData(self, scan):
+	def get_angular_velocity(self):
 
-		self.scan = scan
+		return self._turn_z
 
-	
+
+	def update_scan_data(self, scan):
+
+		self._scan = scan
+

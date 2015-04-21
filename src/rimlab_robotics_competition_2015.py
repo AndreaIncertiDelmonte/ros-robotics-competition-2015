@@ -137,7 +137,7 @@ class RoboticsCompetition(object):
 
         #Update wall follwer data
         if self.wf != None:
-            self.wf.updateScanData(self.scan)
+            self.wf.update_scan_data(self.scan)
 
 
     def mockCodebarCallback(self, number):
@@ -491,9 +491,9 @@ class RoboticsCompetition(object):
         if self.exceedPhaseFour:
 
             print("Exceed phase 4 - Wall Following")      
-            self.wf.computeVelocities()
-            self.speed = self.wf.getLinearVelocity()
-            self.turn = self.wf.getAngularVelocity()
+            self.wf.compute_velocities()
+            self.speed = self.wf.get_linear_velocity()
+            self.turn = self.wf.get_angular_velocity()
 
         if self.exceedPhaseFive:
 
