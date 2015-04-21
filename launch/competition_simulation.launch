@@ -1,0 +1,12 @@
+<launch>
+  <node pkg="stage_ros" type="stageros" name="simulator" args="$(find rimlab_robotics_competition_2015)/world/competition_map.world" >
+    <param name="scan_topic" value="/robot_0/base_scan" />
+  </node>
+  <node pkg="rimlab_robotics_competition_2015" type="rimlab_robotics_competition_2015.py" name="rimlab_robotics_competition_2015_node" output="screen">
+    <param name="scan_topic" value="/robot_0/base_scan" />
+    <param name="cmd_vel_topic" value="/robot_0/cmd_vel" />
+    <param name="revert_scan" value="False" />
+    <param name="mock_codebar" value="True" />
+    <param name="doors_to_exceed" value="3" />
+   </node>
+</launch>
